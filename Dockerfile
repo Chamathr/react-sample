@@ -1,23 +1,35 @@
-# Stage 1: Build the React app
-FROM node:18 as build
+# Step 1: Choose the Node.js version as the base image
+FROM node:18 AS builder
 
+# Step 2: Set the working directory in the container
 WORKDIR /app
 
+# Step 3: Copy package.json and package-lock.json to the container
 COPY package*.json ./
 
-RUN npm install
+# Step 4: Install project dependencies
+RUN npm install -f
 
+# Step 5: Copy the source code to the container
 COPY . .
 
+# Step 6: Build the TypeScript project
 RUN npm run build
 
-# Stage 2: Serve the React app with a lightweight web server
-FROM nginx:alpine
+# Step 7: Use a smaller base image for serving the built app
+FROM node:18-alpine
 
-RUN rm -rf /usr/share/nginx/html/*
+# Step 8: Install a lightweight web server, e.g., serve
+RUN npm install -g serve
 
-COPY --from=build /app/build /usr/share/nginx/html
+# Step 9: Set the working directory in the container
+WORKDIR /app
 
-EXPOSE 80
+# Step 10: Copy the built app from the builder stage to the final image
+COPY --from=builder /app/build .
 
-CMD ["nginx", "-g", "daemon off;"]
+# Step 11: Expose the port that `serve` will use
+EXPOSE 3000
+
+# Step 12: Start the web server to serve the built app
+CMD ["serve", "-s", ".", "-l", "3000"]
